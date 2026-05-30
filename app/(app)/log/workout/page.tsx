@@ -42,14 +42,14 @@ const EXERCISES_BY_TYPE: Record<string, string[]> = {
     "Walking Lunges"
   ],
   arms: [
-    "Barbell Bicep Curls",
-    "Preacher Curls",
-    "Skull Crushers",
-    "Tricep Pushdowns",
+    "Dumbbell Curls",
     "Dumbbell Hammer Curls",
-    "Concentration Curls",
-    "Overhead Tricep Extension",
-    "Cable Bicep Curls"
+    "Cross Body Hammer Curls",
+    "Preacher Curls",
+    "Tricep Extension",
+    "Tricep Pushdown",
+    "Shoulder Press",
+    "Lateral Raises"
   ]
 };
 
