@@ -10,7 +10,6 @@ import {
   orderBy,
   limit,
   getDocs,
-  where,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -39,7 +38,7 @@ export interface HydrationData {
   goalMl: number;
   glasses: number;
   goalGlasses: number;
-  updatedAt?: any;
+  updatedAt?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
  
 export async function getTodayHydration(uid: string): Promise<HydrationData> {

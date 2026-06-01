@@ -38,8 +38,8 @@ export default function SleepPage() {
     if (wAmPm === "PM" && wHour24 !== 12) wHour24 += 12;
     if (wAmPm === "AM" && wHour24 === 12) wHour24 = 0;
 
-    let t1 = bHour24 * 60 + bm;
-    let t2 = wHour24 * 60 + wm;
+    const t1 = bHour24 * 60 + bm;
+    const t2 = wHour24 * 60 + wm;
     
     let diff = t2 - t1;
     if (diff < 0) {

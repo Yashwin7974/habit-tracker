@@ -42,7 +42,6 @@ export default function SpendingPage() {
     total: weeklyEntries.filter((e) => e.category === cat.id).reduce((s, e) => s + e.amount, 0),
   }));
   const maxCatTotal = Math.max(...categoryTotals.map((c) => c.total), 1);
-  const topCategory = categoryTotals.sort((a, b) => b.total - a.total)[0];
   const spendingInsightMsg =
     totalWeekly === 0 ? "💡 No spending logged this week!" :
     totalWeekly < 500 ? "🌟 Great spending discipline this week!" :

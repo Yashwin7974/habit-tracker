@@ -30,7 +30,9 @@ const EXERCISES_BY_TYPE: Record<string, string[]> = {
     "Seated Cable Row",
     "Face Pulls",
     "Barbell Bicep Curls",
-    "Dumbbell Hammer Curls"
+    "Dumbbell Hammer Curls",
+    "Shrugs",
+    "Rear Delt Fly"
   ],
   legs: [
     "Barbell Squats",
@@ -49,7 +51,8 @@ const EXERCISES_BY_TYPE: Record<string, string[]> = {
     "Tricep Extension",
     "Tricep Pushdown",
     "Shoulder Press",
-    "Lateral Raises"
+    "Lateral Raises",
+    "Barbell Curls"
   ]
 };
 
@@ -115,7 +118,12 @@ export default function WorkoutPage() {
         : exerciseSummary;
 
       // Strip the id field before saving to Firestore
-      const exercisesToSave = loggedExercises.map(({ id: _id, ...ex }) => ex);
+      const exercisesToSave = loggedExercises.map((ex) => ({
+        name: ex.name,
+        sets: ex.sets,
+        reps: ex.reps,
+        weight: ex.weight,
+      }));
 
       await logWorkout(user.uid, {
         durationMin: duration,

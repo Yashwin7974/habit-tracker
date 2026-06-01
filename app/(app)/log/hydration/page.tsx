@@ -7,7 +7,7 @@ import { getTodayHydration, addWaterMl, updateWaterGoalMl, getHydrationHistory, 
 export default function HydrationPage() {
   const { user } = useAuth();
   const [data, setData] = useState<HydrationData>({ ml: 0, goalMl: 2000, glasses: 0, goalGlasses: 8 });
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<HydrationData[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
