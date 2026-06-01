@@ -54,6 +54,7 @@ const EXERCISES_BY_TYPE: Record<string, string[]> = {
 };
 
 interface LoggedExercise {
+  id: string; // unique per entry (allows duplicates of the same exercise)
   name: string;
   sets: number;
   reps: number;
@@ -80,13 +81,9 @@ export default function WorkoutPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleAddExercise = (exerciseName: string) => {
-    if (loggedExercises.some((ex) => ex.name === exerciseName)) {
-      setShowDropdown(false);
-      return; // Already added
-    }
     setLoggedExercises((prev) => [
       ...prev,
-      { name: exerciseName, sets: 3, reps: 10, weight: 20 },
+      { id: `${exerciseName}-${Date.now()}`, name: exerciseName, sets: 3, reps: 10, weight: 20 },
     ]);
     setShowDropdown(false);
   };
@@ -117,11 +114,14 @@ export default function WorkoutPage() {
         ? (exerciseSummary ? `${exerciseSummary}\n\nNotes: ${notes}` : notes)
         : exerciseSummary;
 
+      // Strip the id field before saving to Firestore
+      const exercisesToSave = loggedExercises.map(({ id: _id, ...ex }) => ex);
+
       await logWorkout(user.uid, {
         durationMin: duration,
         type: workoutType,
         notes: finalNotes,
-        exercises: loggedExercises,
+        exercises: exercisesToSave,
       });
 
       setSaved(true);
@@ -265,10 +265,25 @@ export default function WorkoutPage() {
 
         {/* Selected Exercises Details List */}
         <div className="space-y-3">
-          {loggedExercises.map((ex, index) => (
-            <div key={ex.name} className="glass-card rounded-2xl p-4 border border-white/5 space-y-3 relative overflow-hidden animate-fade-in-up">
+          {loggedExercises.map((ex, index) => {
+            // Count how many of the same exercise exist to show a set label
+            const sameNameEntries = loggedExercises.filter((e) => e.name === ex.name);
+            const setIndex = loggedExercises
+              .slice(0, index + 1)
+              .filter((e) => e.name === ex.name).length;
+            const showSetLabel = sameNameEntries.length > 1;
+
+            return (
+            <div key={ex.id} className="glass-card rounded-2xl p-4 border border-white/5 space-y-3 relative overflow-hidden animate-fade-in-up">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-on-surface text-[16px] pr-8">{ex.name}</span>
+                <div>
+                  <span className="font-semibold text-on-surface text-[16px] pr-8">{ex.name}</span>
+                  {showSetLabel && (
+                    <span className="ml-2 text-[11px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                      Set {setIndex}
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={() => handleRemoveExercise(index)}
                   className="text-error/60 hover:text-error hover:bg-error-container/20 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-90"
@@ -343,7 +358,8 @@ export default function WorkoutPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {loggedExercises.length === 0 && (
             <p className="text-on-surface-variant text-[14px] italic text-center py-4">No exercises added yet. Use the add button above.</p>

@@ -7,7 +7,7 @@ const navItems = [
   { href: "/", icon: "dashboard", label: "Home" },
   { href: "/log/workout", icon: "fitness_center", label: "Workout" },
   { href: "/log/hydration", icon: "water_drop", label: "Hydration" },
-  { href: "/log", icon: "history_edu", label: "Log" },
+  { href: "/history", icon: "history", label: "History" },
 ];
 
 export default function BottomNavBar() {

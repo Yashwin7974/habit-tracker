@@ -7,7 +7,9 @@ import {
   getTodayHydration,
   HydrationData,
   getWorkoutHistory,
-  getTodayCardio,
+  getTodayRunCardio,
+  getTodayWalkCardio,
+  getTodaySpending,
   CardioData,
   getSleepHistory,
   SleepData,
@@ -41,23 +43,29 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [hydration, setHydration] = useState<HydrationData>({ ml: 0, goalMl: 2000, glasses: 0, goalGlasses: 8 });
   const [workoutDuration, setWorkoutDuration] = useState(0);
-  const [cardio, setCardio] = useState<CardioData | null>(null);
+  const [todayRun, setTodayRun] = useState<CardioData | null>(null);
+  const [todayWalk, setTodayWalk] = useState<CardioData | null>(null);
   const [sleep, setSleep] = useState<SleepData | null>(null);
+  const [spendingTotal, setSpendingTotal] = useState(0);
   const [streak] = useState(14);
 
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [hyd, workouts, cardioData, sleeps] = await Promise.all([
+      const [hyd, workouts, run, walk, sleeps, spendingData] = await Promise.all([
         getTodayHydration(user.uid),
         getWorkoutHistory(user.uid, 1),
-        getTodayCardio(user.uid),
+        getTodayRunCardio(user.uid),
+        getTodayWalkCardio(user.uid),
         getSleepHistory(user.uid, 1),
+        getTodaySpending(user.uid),
       ]);
       setHydration(hyd);
       setWorkoutDuration(workouts[0]?.durationMin ?? 0);
-      setCardio(cardioData);
+      setTodayRun(run);
+      setTodayWalk(walk);
       setSleep(sleeps[0]?.hours > 0 ? sleeps[0] : null);
+      setSpendingTotal(spendingData.reduce((sum, e) => sum + e.amount, 0));
     } catch (e) {
       console.error(e);
     }
@@ -67,18 +75,13 @@ export default function DashboardPage() {
     loadData();
   }, [loadData]);
 
-  // Overall progress: how many of 4 goals are "done"
+  // Overall progress: how many of 5 goals are "done"
   const hydrationDone = hydration.ml >= hydration.goalMl ? 1 : hydration.ml / hydration.goalMl;
   const workoutDone = workoutDuration >= 30 ? 1 : workoutDuration / 30;
-  
-  const cardioDone = cardio
-    ? cardio.type === "walking"
-      ? (cardio.steps ?? 0) >= 10000 ? 1 : (cardio.steps ?? 0) / 10000
-      : (cardio.distanceKm ?? 0) >= 5 ? 1 : (cardio.distanceKm ?? 0) / 5
-    : 0;
-
+  const runDone = todayRun ? (todayRun.distanceKm >= 5 ? 1 : todayRun.distanceKm / 5) : 0;
+  const walkDone = todayWalk ? ((todayWalk.steps ?? 0) >= 10000 ? 1 : (todayWalk.steps ?? 0) / 10000) : 0;
   const sleepDone = sleep ? (sleep.hours * 60 + sleep.minutes) / 480 : 0;
-  const overallPercent = (hydrationDone + workoutDone + cardioDone + sleepDone) / 4;
+  const overallPercent = (hydrationDone + workoutDone + runDone + walkDone + sleepDone) / 5;
 
   const habitCards = [
     {
@@ -115,19 +118,37 @@ export default function DashboardPage() {
       glowColor: "bg-tertiary/10",
     },
     {
-      title: "Cardio",
-      icon: cardio?.type === "walking" ? "directions_walk" : "directions_run",
-      color: "error",
+      title: "Running",
+      icon: "directions_run",
+      color: "primary",
       href: "/log/cardio",
-      value: cardio
-        ? cardio.type === "walking"
-          ? (cardio.steps ?? 0).toLocaleString()
-          : `${cardio.distanceKm.toFixed(2)}`
-        : "--",
-      unit: cardio?.type === "walking" ? "steps" : "km",
-      progress: cardioDone,
+      value: todayRun ? `${todayRun.distanceKm.toFixed(2)}` : "--",
+      unit: "km run",
+      progress: runDone,
       type: "bar",
-      glowColor: "bg-error/10",
+      glowColor: "bg-primary/10",
+    },
+    {
+      title: "Walking",
+      icon: "directions_walk",
+      color: "secondary",
+      href: "/log/cardio",
+      value: todayWalk ? (todayWalk.steps ?? 0).toLocaleString() : "--",
+      unit: "steps walk",
+      progress: walkDone,
+      type: "bar",
+      glowColor: "bg-secondary/10",
+    },
+    {
+      title: "Spending",
+      icon: "payments",
+      color: "tertiary",
+      href: "/log/spending",
+      value: `₹${spendingTotal.toLocaleString()}`,
+      unit: "today's total",
+      progress: 0,
+      type: "simple",
+      glowColor: "bg-tertiary/10",
     },
   ];
 
@@ -202,29 +223,16 @@ export default function DashboardPage() {
                   <span className="text-[12px] font-medium text-on-surface-variant">Goal: 8h</span>
                 </div>
               )}
+
+              {card.type === "simple" && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] font-medium text-on-surface-variant">Tap to log expenses</span>
+                </div>
+              )}
             </div>
           </Link>
         ))}
       </section>
-
-      {/* Spending shortcut */}
-      <Link
-        href="/log/spending"
-        className="glass-card rounded-[2rem] p-[1rem] flex items-center justify-between group hover:bg-white/5 transition-all duration-300 active:scale-[0.98]"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
-          </div>
-          <div>
-            <h3 className="text-[20px] font-semibold text-on-surface">Spending</h3>
-            <p className="text-[14px] text-on-surface-variant">Log today's expenses</p>
-          </div>
-        </div>
-        <span className="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform">
-          arrow_forward
-        </span>
-      </Link>
 
       {/* FAB */}
       <Link

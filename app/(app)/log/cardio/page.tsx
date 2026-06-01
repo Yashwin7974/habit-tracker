@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { logCardio, getTodayCardio, getCardioHistory, CardioData } from "@/lib/firestore";
+import { logCardio, getTodayRunCardio, getTodayWalkCardio, getCardioHistory, CardioData } from "@/lib/firestore";
 
 const CARDIO_TYPES = [
   { id: "running", label: "Running", icon: "directions_run", color: "primary" },
@@ -20,28 +20,23 @@ export default function CardioPage() {
   // Walking fields
   const [steps, setSteps] = useState(5000);
   
-  const [todayData, setTodayData] = useState<CardioData | null>(null);
+  // Today's data — separate states for run and walk
+  const [todayRun, setTodayRun] = useState<CardioData | null>(null);
+  const [todayWalk, setTodayWalk] = useState<CardioData | null>(null);
   const [history, setHistory] = useState<CardioData[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [data, hist] = await Promise.all([
-      getTodayCardio(user.uid),
+    const [run, walk, hist] = await Promise.all([
+      getTodayRunCardio(user.uid),
+      getTodayWalkCardio(user.uid),
       getCardioHistory(user.uid, 7),
     ]);
-    setTodayData(data);
+    setTodayRun(run);
+    setTodayWalk(walk);
     setHistory(hist);
-    if (data?.type) {
-      setCardioType(data.type);
-      if (data.type === "walking" && data.steps) {
-        setSteps(data.steps);
-      } else if (data.type === "running" && data.distanceKm) {
-        setDistance(data.distanceKm);
-        setDuration(data.durationMin);
-      }
-    }
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
@@ -139,57 +134,60 @@ export default function CardioPage() {
         </div>
       </section>
 
-      {/* Today's summary */}
-      {todayData && (
-        <section className={`glass-card rounded-[2rem] p-6 border-l-4 ${todayData.type === "walking" ? "border-secondary" : "border-primary"} fade-in-up`}>
+      {/* Today's Run Summary */}
+      {todayRun && (
+        <section className="glass-card rounded-[2rem] p-6 border-l-4 border-primary fade-in-up">
           <p className="text-[14px] font-semibold text-on-surface-variant mb-3">
-            Today&apos;s {todayData.type === "walking" ? "Walk" : "Run"}
+            Today&apos;s Run 🏃
           </p>
-          
-          {todayData.type === "walking" ? (
-            /* Walking Summary */
-            <div className="flex justify-center items-center py-2">
-              <div className="text-center">
-                <p className="text-[36px] font-black text-secondary">
-                  {(todayData.steps ?? 0).toLocaleString()}
-                </p>
-                <p className="text-[14px] font-medium text-on-surface-variant">steps logged</p>
-              </div>
+          <div className="flex justify-between items-center">
+            <div className="text-center">
+              <p className="text-[32px] font-extrabold text-primary">
+                {todayRun.distanceKm.toFixed(2)}
+                <span className="text-[14px] font-normal text-on-surface-variant block">km</span>
+              </p>
             </div>
-          ) : (
-            /* Running Summary */
-            <div className="flex justify-between items-center">
-              <div className="text-center">
-                <p className="text-[32px] font-extrabold text-primary">
-                  {todayData.distanceKm.toFixed(2)}
-                  <span className="text-[14px] font-normal text-on-surface-variant block">km</span>
-                </p>
-              </div>
-              <div className="w-px h-12 bg-white/10" />
-              <div className="text-center">
-                <p className="text-[32px] font-extrabold text-on-surface">
-                  {((todayData.distanceKm || 0) * 1000).toLocaleString()}
-                  <span className="text-[14px] font-normal text-on-surface-variant block">m</span>
-                </p>
-              </div>
-              <div className="w-px h-12 bg-white/10" />
-              <div className="text-center">
-                <p className="text-[32px] font-extrabold text-secondary">
-                  {todayData.durationMin}
-                  <span className="text-[14px] font-normal text-on-surface-variant block">min</span>
-                </p>
-              </div>
-              <div className="w-px h-12 bg-white/10" />
-              <div className="text-center">
-                <p className="text-[32px] font-extrabold text-tertiary">
-                  {todayData.durationMin > 0 && todayData.distanceKm > 0
-                    ? `${Math.floor(todayData.durationMin / todayData.distanceKm)}:${String(Math.round(((todayData.durationMin / todayData.distanceKm) % 1) * 60)).padStart(2, "0")}`
-                    : "--"}
-                  <span className="text-[14px] font-normal text-on-surface-variant block">pace/km</span>
-                </p>
-              </div>
+            <div className="w-px h-12 bg-white/10" />
+            <div className="text-center">
+              <p className="text-[32px] font-extrabold text-on-surface">
+                {((todayRun.distanceKm || 0) * 1000).toLocaleString()}
+                <span className="text-[14px] font-normal text-on-surface-variant block">m</span>
+              </p>
             </div>
-          )}
+            <div className="w-px h-12 bg-white/10" />
+            <div className="text-center">
+              <p className="text-[32px] font-extrabold text-secondary">
+                {todayRun.durationMin}
+                <span className="text-[14px] font-normal text-on-surface-variant block">min</span>
+              </p>
+            </div>
+            <div className="w-px h-12 bg-white/10" />
+            <div className="text-center">
+              <p className="text-[32px] font-extrabold text-tertiary">
+                {todayRun.durationMin > 0 && todayRun.distanceKm > 0
+                  ? `${Math.floor(todayRun.durationMin / todayRun.distanceKm)}:${String(Math.round(((todayRun.durationMin / todayRun.distanceKm) % 1) * 60)).padStart(2, "00")}`
+                  : "--"}
+                <span className="text-[14px] font-normal text-on-surface-variant block">pace/km</span>
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Today's Walk Summary */}
+      {todayWalk && (
+        <section className="glass-card rounded-[2rem] p-6 border-l-4 border-secondary fade-in-up">
+          <p className="text-[14px] font-semibold text-on-surface-variant mb-3">
+            Today&apos;s Walk 🚶
+          </p>
+          <div className="flex justify-center items-center py-2">
+            <div className="text-center">
+              <p className="text-[36px] font-black text-secondary">
+                {(todayWalk.steps ?? 0).toLocaleString()}
+              </p>
+              <p className="text-[14px] font-medium text-on-surface-variant">steps logged</p>
+            </div>
+          </div>
         </section>
       )}
 
